@@ -17,13 +17,46 @@ vgg_activation = dict()
 
 
 def get_activation(name):
+    """
+    Returns a hook function that saves the output of a layer's activation.
+
+    Parameters:
+    name (str): The name of the layer.
+
+    Returns:
+    hook (function): A hook function that saves the output of the layer's activation.
+
+    """
+
     def hook(model, input, output):
+        """
+        This function is a hook that is called when a layer in the model is executed.
+        It stores the output of the layer in the `vgg_activation` dictionary.
+
+        Parameters:
+        - model: The model being executed.
+        - input: The input to the layer.
+        - output: The output of the layer.
+
+        Returns:
+        None
+        """
         vgg_activation[name] = output
 
     return hook
 
 
 def gram_matrix(x):
+    """
+    Calculate the Gram matrix of the input tensor.
+
+    Args:
+        x (torch.Tensor): Input tensor of shape (a, b, c, d).
+
+    Returns:
+        torch.Tensor: Gram matrix of shape (a * b, a * b).
+
+    """
     a, b, c, d = x.size()
     features = x.view(a * b, c * d)
     G = torch.mm(features, features.t())
@@ -31,6 +64,70 @@ def gram_matrix(x):
 
 
 class Solver(object):
+    """
+    The Solver class is responsible for training the model and managing the training process.
+
+    Args:
+        config (dict): Configuration parameters for the model.
+        data_loader (DataLoader): The data loader object that provides the training data.
+
+    Attributes:
+        data_loader (DataLoader): The data loader object that provides the training data.
+        img_size (int): The size of the input images.
+        epoch (int): The number of training epochs.
+        batch_size (int): The batch size for training.
+        g_lr (float): The learning rate for the generator.
+        d_lr (float): The learning rate for the discriminator.
+        lambda_g_fake (float): The weight for the fake loss in the generator.
+        lambda_g_recon (float): The weight for the reconstruction loss in the generator.
+        lambda_g_style (float): The weight for the style loss in the generator.
+        lambda_g_percep (float): The weight for the perceptual loss in the generator.
+        lambda_d_fake (float): The weight for the fake loss in the discriminator.
+        lambda_d_real (float): The weight for the real loss in the discriminator.
+        d_critic (int): The number of times the discriminator is updated per generator update.
+        g_critic (int): The number of times the generator is updated per discriminator update.
+        mse_loss (nn.MSELoss): The mean squared error loss function.
+        optim (str): The optimizer used for training.
+        beta1 (float): The beta1 parameter for the Adam optimizer.
+        beta2 (float): The beta2 parameter for the Adam optimizer.
+        adversarial_loss (nn.MSELoss): The adversarial loss function.
+        l1_loss (nn.L1Loss): The L1 loss function.
+        cpu_seed (int): The random seed for CPU operations.
+        gpu_seed (int): The random seed for GPU operations.
+        g_spec (bool): Whether to use spectral normalization in the generator.
+        d_spec (bool): Whether to use spectral normalization in the discriminator.
+        gpu (int): The index of the GPU device to use for training.
+        use_tensorboard (bool): Whether to use TensorBoard for logging.
+        target_layer (list): The target layers for feature extraction.
+        train_dir (str): The directory for saving training-related files.
+        log_dir (str): The directory for saving log files.
+        sample_dir (str): The directory for saving sample images.
+        result_dir (str): The directory for saving result images.
+        model_dir (str): The directory for saving model checkpoints.
+        log_step (int): The interval for logging training progress.
+        sample_step (int): The interval for saving sample images.
+        save_step (int): The interval for saving model checkpoints.
+        save_start (int): The epoch to start saving model checkpoints.
+        lr_decay_step (int): The interval for decaying the learning rate.
+        vgg (nn.Module): The VGG19 model for perceptual loss calculation.
+        D (Discriminator): The discriminator model.
+        G (Generator): The generator model.
+        g_optimizer (torch.optim.Adam): The optimizer for the generator.
+        d_optimizer (torch.optim.Adam): The optimizer for the discriminator.
+
+    Methods:
+        build_model(): Builds the VGG, discriminator, and generator models.
+        print_network(model, name): Prints the network information for a given model.
+        update_lr(g_lr, d_lr): Updates the learning rates of the generator and discriminator.
+        reset_grad(): Resets the gradient buffers.
+        denorm(x): Converts the range of values from [-1, 1] to [0, 1].
+        restore_model(): Restores the trained model from the latest checkpoint.
+        image_reporting(fixed_sketch, fixed_reference, fixed_elastic_reference, epoch, postfix=""): Generates and saves sample images during training.
+        percep_style(reference, fake_images): Calculates the perceptual and style losses between the reference and fake images.
+        G_train(sketch, reference, loss_dict, elastic_reference): Performs a forward pass and updates the generator.
+        D_train(sketch, reference, loss_dict, elastic_reference): Performs a forward pass and updates the discriminator.
+        train(): Trains the model using the provided data loader.
+    """
 
     def __init__(self, config, data_loader):
         """Initialize configurations."""
@@ -114,18 +211,18 @@ class Solver(object):
         self.build_model()
 
     def build_model(self):
+        """
+        Builds the model by registering forward hooks for target layers,
+        moving the model to the GPU, and printing the network architecture.
+
+        Returns:
+            None
+        """
         for layer in self.target_layer:
             self.vgg.features[int(layer.split("_")[-1])].register_forward_hook(
                 get_activation(layer)
             )
         self.vgg.to(self.gpu)
-        """
-        self.vgg.features[3].register_forward_hook(get_activation('relu_3'))
-        self.vgg.features[8].register_forward_hook(get_activation('relu_8'))
-        self.vgg.features[17].register_forward_hook(get_activation('relu_17'))
-        self.vgg.features[26].register_forward_hook(get_activation('relu_26'))
-        self.vgg.features[35].register_forward_hook(get_activation('relu_35'))
-        """
         self.print_network(self.G, "G")
         self.print_network(self.D, "D")
 
@@ -161,7 +258,12 @@ class Solver(object):
         return out.clamp_(0, 1)
 
     def restore_model(self):
+        """
+        Restores the model from the latest saved checkpoint.
 
+        Returns:
+            int: The epoch number of the restored model.
+        """
         pth_list = glob.glob(osp.join(self.model_dir, "*-G.pth"))
 
         if len(pth_list) == 0:
@@ -188,6 +290,24 @@ class Solver(object):
     def image_reporting(
         self, fixed_sketch, fixed_reference, fixed_elastic_reference, epoch, postfix=""
     ):
+        """
+        Generate and save image reports for the given inputs.
+
+        Args:
+            fixed_sketch (torch.Tensor): The fixed sketch input.
+                The input tensor representing the fixed sketch.
+            fixed_reference (torch.Tensor): The fixed reference input.
+                The input tensor representing the fixed reference.
+            fixed_elastic_reference (torch.Tensor): The fixed elastic reference input.
+                The input tensor representing the fixed elastic reference.
+            epoch (int): The current epoch number.
+                The number of the current epoch.
+            postfix (str, optional): A postfix string to append to the saved image file name. Defaults to "".
+                An optional string to append to the saved image file name.
+
+        Returns:
+            None
+        """
         image_report = list()
         image_report.append(fixed_sketch.expand_as(fixed_reference))
         image_report.append(fixed_elastic_reference)
@@ -203,6 +323,17 @@ class Solver(object):
         save_image(self.denorm(x_concat.data.cpu()), sample_path, nrow=1, padding=0)
 
     def percep_style(self, reference, fake_images):
+        """
+        Calculates the perceptual loss for style and perception between the reference image and the fake images.
+
+        Args:
+            reference (Tensor): The reference image.
+            fake_images (Tensor): The generated fake images.
+
+        Returns:
+            Tuple: A tuple containing the perceptual loss for perception and style.
+
+        """
         fake_activation = dict()
         real_activation = dict()
 
@@ -231,6 +362,18 @@ class Solver(object):
         return g_loss_percep, g_loss_style
 
     def G_train(self, sketch, reference, loss_dict, elastic_reference):
+        """
+        Trains the generator network.
+
+        Args:
+            sketch (torch.Tensor): The input sketch tensor.
+            reference (torch.Tensor): The reference image tensor.
+            loss_dict (dict): A dictionary to store the loss values.
+            elastic_reference (torch.Tensor): The elastic reference tensor.
+
+        Returns:
+            None
+        """
         fake_images = self.G(elastic_reference, sketch)
 
         fake_score = self.D(torch.cat([fake_images, sketch], dim=1))
@@ -259,6 +402,18 @@ class Solver(object):
         loss_dict["G/loss_recon"] = self.lambda_g_recon * g_loss_recon.item()
 
     def D_train(self, sketch, reference, loss_dict, elastic_reference):
+        """
+        Trains the discriminator network.
+
+        Args:
+            sketch (torch.Tensor): The input sketch tensor.
+            reference (torch.Tensor): The reference image tensor.
+            loss_dict (dict): A dictionary to store the loss values.
+            elastic_reference (torch.Tensor): The elastic reference image tensor.
+
+        Returns:
+            None
+        """
         fake_images = self.G(elastic_reference, sketch)
 
         real_score = self.D(torch.cat([reference, sketch], dim=1))
@@ -279,7 +434,12 @@ class Solver(object):
         loss_dict["D/loss_fake"] = self.lambda_d_fake * d_loss_fake.item()
 
     def train(self):
+        """
+        Trains the model using the specified data loader and hyperparameters.
 
+        Returns:
+            None
+        """
         # Set data loader.
         data_loader = self.data_loader
         iterations = len(self.data_loader)

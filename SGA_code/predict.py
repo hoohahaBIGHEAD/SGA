@@ -12,9 +12,9 @@ import cv2
 import numpy as np
 
 cv2.ocl.setUseOpenCL(False)
-cv2.setNumThreads(0)  
+cv2.setNumThreads(0)
 
-device = torch.device('cuda')
+device = torch.device("cuda")
 G = Generator()
 
 
@@ -29,22 +29,22 @@ class DataSet(data.Dataset):
         self.img_transform_gt = img_transform_gt
         self.img_transform_sketch = img_transform_sketch
 
-        if dataset_name == 'anime':
-            self.img_dir = './anime/test2'
-            self.skt_dir = './anime/test0'
-            self.data_list = glob.glob(os.path.join(self.img_dir, '*.png'))
-        elif dataset_name == 'afhq_cat':
-            self.img_dir = './afhq/val/cat'
-            self.skt_dir = './afhq/val/cat_sketch'
-            self.data_list = glob.glob(os.path.join(self.img_dir, '*.jpg'))
-        elif dataset_name == 'afhq_dog':
-            self.img_dir = './afhq/val/dog'
-            self.skt_dir = './afhq/val/dog_sketch'
-            self.data_list = glob.glob(os.path.join(self.img_dir, '*.jpg'))
-        elif dataset_name == 'afhq_wild':
-            self.img_dir = './afhq/val/wild'
-            self.skt_dir = './afhq/val/wild_sketch'
-            self.data_list = glob.glob(os.path.join(self.img_dir, '*.jpg'))
+        if dataset_name == "anime":
+            self.img_dir = "./anime/test2"
+            self.skt_dir = "./anime/test0"
+            self.data_list = glob.glob(os.path.join(self.img_dir, "*.png"))
+        elif dataset_name == "afhq_cat":
+            self.img_dir = "./afhq/val/cat"
+            self.skt_dir = "./afhq/val/cat_sketch"
+            self.data_list = glob.glob(os.path.join(self.img_dir, "*.jpg"))
+        elif dataset_name == "afhq_dog":
+            self.img_dir = "./afhq/val/dog"
+            self.skt_dir = "./afhq/val/dog_sketch"
+            self.data_list = glob.glob(os.path.join(self.img_dir, "*.jpg"))
+        elif dataset_name == "afhq_wild":
+            self.img_dir = "./afhq/val/wild"
+            self.skt_dir = "./afhq/val/wild_sketch"
+            self.data_list = glob.glob(os.path.join(self.img_dir, "*.jpg"))
 
         self.img_size = (256, 256, 3)
 
@@ -53,10 +53,8 @@ class DataSet(data.Dataset):
 
     def __getitem__(self, index):
         fid = self.data_list[index]
-        reference = Image.open(
-            osp.join(self.img_dir, '{}'.format(fid))).convert('RGB')
-        sketch = Image.open(
-            osp.join(self.skt_dir, '{}'.format(fid))).convert('L')
+        reference = Image.open(osp.join(self.img_dir, "{}".format(fid))).convert("RGB")
+        sketch = Image.open(osp.join(self.skt_dir, "{}".format(fid))).convert("L")
 
         return fid, self.img_transform_gt(reference), self.img_transform_sketch(sketch)
 
@@ -72,8 +70,7 @@ def get_loader(dataset_name):
 
     img_transform_gt.append(T.Resize((img_size, img_size)))
     img_transform_gt.append(T.ToTensor())
-    img_transform_gt.append(T.Normalize(
-        mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+    img_transform_gt.append(T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
     img_transform_gt = T.Compose(img_transform_gt)
 
     img_transform_sketch.append(T.Resize((img_size, img_size)))
@@ -82,11 +79,9 @@ def get_loader(dataset_name):
     img_transform_sketch = T.Compose(img_transform_sketch)
 
     dataset = DataSet(img_transform_gt, img_transform_sketch, dataset_name)
-    data_loader = data.DataLoader(dataset=dataset,
-                                  batch_size=16,
-                                  shuffle=True,
-                                  num_workers=4,
-                                  drop_last=True)
+    data_loader = data.DataLoader(
+        dataset=dataset, batch_size=16, shuffle=True, num_workers=4, drop_last=True
+    )
     return data_loader
 
 
@@ -101,9 +96,9 @@ def image_save(gen, fid, sample_dir):
 
 
 def load_model(dataset_name, epoch):
-    G_path = './' + dataset_name + '/models/{}-G.pth'.format(epoch)
+    G_path = "./" + dataset_name + "/models/{}-G.pth".format(epoch)
     G_checkpoint = torch.load(G_path)
-    G.load_state_dict(G_checkpoint['model'])
+    G.load_state_dict(G_checkpoint["model"])
     G.to(device)
     G.eval()
 
@@ -121,15 +116,15 @@ def cal_ssim(im1, im2):
     C1 = (k1 * L) ** 2
     C2 = (k2 * L) ** 2
     C3 = C2 / 2
-    l12 = (2 * mu1 * mu2 + C1) / (mu1 ** 2 + mu2 ** 2 + C1)
-    c12 = (2 * sigma1 * sigma2 + C2) / (sigma1 ** 2 + sigma2 ** 2 + C2)
+    l12 = (2 * mu1 * mu2 + C1) / (mu1**2 + mu2**2 + C1)
+    c12 = (2 * sigma1 * sigma2 + C2) / (sigma1**2 + sigma2**2 + C2)
     s12 = (sigma12 + C3) / (sigma1 * sigma2 + C3)
     ssim = l12 * c12 * s12
     return ssim
 
 
 def SSIM(paths):
-    img_list = glob.glob(os.path.join(paths[0], '*.png'))
+    img_list = glob.glob(os.path.join(paths[0], "*.png"))
     img_list = [os.path.basename(x) for x in img_list]
     total = len(img_list)
     ssim = 0.0
@@ -147,8 +142,8 @@ def SSIM(paths):
     return ssim / total
 
 
-if __name__ == '__main__':
-    dataset_name = 'anime'
+if __name__ == "__main__":
+    dataset_name = "anime"
     test_loader = get_loader(dataset_name)
 
     iterations = len(test_loader)
@@ -158,22 +153,22 @@ if __name__ == '__main__':
     sample_dir = None
     test_dir = None
     txt_path = None
-    if dataset_name == 'anime':
-        sample_dir = './anime/predict'
-        test_dir = './anime/test2'
-        txt_path = './anime/exp.txt'
-    elif dataset_name == 'afhq_cat':
-        sample_dir = './afhq_cat/predict'
-        test_dir = './afhq/val/cat'
-        txt_path = './afhq_cat/exp.txt'
-    elif dataset_name == 'afhq_dog':
-        sample_dir = './afhq_dog/predict'
-        test_dir = './afhq/val/dog'
-        txt_path = './afhq_dog/exp.txt'
-    elif dataset_name == 'afhq_wild':
-        sample_dir = './afhq_wild/predict'
-        test_dir = '.afhq/val/wild'
-        txt_path = './afhq_wild/exp.txt'
+    if dataset_name == "anime":
+        sample_dir = "./anime/predict"
+        test_dir = "./anime/test2"
+        txt_path = "./anime/exp.txt"
+    elif dataset_name == "afhq_cat":
+        sample_dir = "./afhq_cat/predict"
+        test_dir = "./afhq/val/cat"
+        txt_path = "./afhq_cat/exp.txt"
+    elif dataset_name == "afhq_dog":
+        sample_dir = "./afhq_dog/predict"
+        test_dir = "./afhq/val/dog"
+        txt_path = "./afhq_dog/exp.txt"
+    elif dataset_name == "afhq_wild":
+        sample_dir = "./afhq_wild/predict"
+        test_dir = ".afhq/val/wild"
+        txt_path = "./afhq_wild/exp.txt"
     assert sample_dir is not None
     assert test_dir is not None
     assert txt_path is not None
@@ -203,11 +198,13 @@ if __name__ == '__main__':
 
         paths = [sample_dir, test_dir]
 
-        FID = calculate_fid_given_paths(paths=paths, batch_size=50, device=device, dims=2048)
+        FID = calculate_fid_given_paths(
+            paths=paths, batch_size=50, device=device, dims=2048
+        )
         ssim = SSIM(paths)
 
-        with open(txt_path, 'a') as fp:
-            print(f'Epoch {e + 1}', file=fp)
-            print(f'FID : {FID}    SSIM : {ssim}', file=fp)
+        with open(txt_path, "a") as fp:
+            print(f"Epoch {e + 1}", file=fp)
+            print(f"FID : {FID}    SSIM : {ssim}", file=fp)
 
     print("finish predict!")

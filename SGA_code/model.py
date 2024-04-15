@@ -80,29 +80,34 @@ class Encoder(nn.Module):
         down_feature_map7 = self.down_sampling(feature_map7)
         down_feature_map8 = self.down_sampling(feature_map8)
 
-        output = torch.cat([down_feature_map1,
-                            down_feature_map2,
-                            down_feature_map3,
-                            down_feature_map4,
-                            down_feature_map5,
-                            down_feature_map6,
-                            down_feature_map7,
-                            down_feature_map8,
-                            feature_map9,
-                            feature_map10,
-                            ], dim=1)
+        output = torch.cat(
+            [
+                down_feature_map1,
+                down_feature_map2,
+                down_feature_map3,
+                down_feature_map4,
+                down_feature_map5,
+                down_feature_map6,
+                down_feature_map7,
+                down_feature_map8,
+                feature_map9,
+                feature_map10,
+            ],
+            dim=1,
+        )
         # torch.Size([2, 992, 16, 16])
-        feature_list = [feature_map1,
-                        feature_map2,
-                        feature_map3,
-                        feature_map4,
-                        feature_map5,
-                        feature_map6,
-                        feature_map7,
-                        feature_map8,
-                        feature_map9,
-                        feature_map10,
-                        ]
+        feature_list = [
+            feature_map1,
+            feature_map2,
+            feature_map3,
+            feature_map4,
+            feature_map5,
+            feature_map6,
+            feature_map7,
+            feature_map8,
+            feature_map9,
+            feature_map10,
+        ]
 
         return output, feature_list
 
@@ -164,7 +169,9 @@ class SCFT_Module(nn.Module):
         v_result = self.w_v(v_r)
         # torch.Size([b, 256, 992])
 
-        dot = torch.einsum('bik,bjk->bij', q_result, k_result)  # torch.Size([b, skt_wh, ref_wh])
+        dot = torch.einsum(
+            "bik,bjk->bij", q_result, k_result
+        )  # torch.Size([b, skt_wh, ref_wh])
         attention_map = self.softmax(dot / self.scaling_factor)
 
         v_star = torch.bmm(attention_map, v_result)  # torch.Size([b, 256, 992])
@@ -184,7 +191,9 @@ class SCFT_Module(nn.Module):
         v_result = self.w_v(v_r)
         # torch.Size([b, 256, 992])
 
-        dot = torch.einsum('bik,bjk->bij', q_result, k_result)  # torch.Size([b, skt_wh, ref_wh])
+        dot = torch.einsum(
+            "bik,bjk->bij", q_result, k_result
+        )  # torch.Size([b, skt_wh, ref_wh])
         attention_map = self.softmax(dot / self.scaling_factor)
 
         v_star = torch.bmm(attention_map, v_result)  # torch.Size([b, 256, 992])
@@ -225,7 +234,9 @@ class SCFT_Module(nn.Module):
         v_result = self.w_v(v_r_v)
         # torch.Size([b, 256, 992])
 
-        dot = torch.einsum('bik,bjk->bij', q_result, k_result)  # torch.Size([b, skt_wh, ref_wh])
+        dot = torch.einsum(
+            "bik,bjk->bij", q_result, k_result
+        )  # torch.Size([b, skt_wh, ref_wh])
         attention_map = self.softmax(dot / self.scaling_factor)
 
         v_star = torch.bmm(attention_map, v_result)  # torch.Size([b, 256, 992])

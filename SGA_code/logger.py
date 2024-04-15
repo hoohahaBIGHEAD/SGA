@@ -1,5 +1,7 @@
 from tensorboardX import SummaryWriter
-#http://www.erogol.com/use-tensorboard-pytorch/
+
+# http://www.erogol.com/use-tensorboard-pytorch/
+
 
 class Logger(object):
     """Tensorboard logger."""
@@ -16,8 +18,8 @@ class Logger(object):
         self.writer.add_scalar(tag, value, step)
 
     def image_summary(self, tag, images, step):
-        """Add image summary. """
-        self.writer.add_image(tag,images,step)
+        """Add image summary."""
+        self.writer.add_image(tag, images, step)
 
     def param_summary(self, model, step):
         for name, param in model.named_parameters():

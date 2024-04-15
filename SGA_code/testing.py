@@ -10,7 +10,7 @@ from torchvision.utils import save_image
 import numpy as np
 import matplotlib.pyplot as plt
 
-device = torch.device('cuda')
+device = torch.device("cuda")
 G = Generator()
 
 
@@ -25,18 +25,18 @@ class DataSet(data.Dataset):
         self.img_transform_gt = img_transform_gt
         self.img_transform_sketch = img_transform_sketch
 
-        self.img_dir = './' + dataset_name + '/exp'
+        self.img_dir = "./" + dataset_name + "/exp"
 
-        self.ref_name = glob.glob(os.path.join(self.img_dir, 'ref.*'))
-        self.skt_name = glob.glob(os.path.join(self.img_dir, 'skt.*'))
+        self.ref_name = glob.glob(os.path.join(self.img_dir, "ref.*"))
+        self.skt_name = glob.glob(os.path.join(self.img_dir, "skt.*"))
         print(self.ref_name)
         print(self.skt_name)
 
         self.img_size = (256, 256, 3)
 
     def __getitem__(self, index):
-        reference = Image.open(self.ref_name[0]).convert('RGB')
-        sketch = Image.open(self.skt_name[0]).convert('L')
+        reference = Image.open(self.ref_name[0]).convert("RGB")
+        sketch = Image.open(self.skt_name[0]).convert("L")
 
         return self.img_transform_gt(reference), self.img_transform_sketch(sketch)
 
@@ -52,8 +52,7 @@ def get_loader(dataset_name):
 
     img_transform_gt.append(T.Resize((img_size, img_size)))
     img_transform_gt.append(T.ToTensor())
-    img_transform_gt.append(T.Normalize(
-        mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
+    img_transform_gt.append(T.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5)))
     img_transform_gt = T.Compose(img_transform_gt)
 
     img_transform_sketch.append(T.Resize((img_size, img_size)))
@@ -62,27 +61,26 @@ def get_loader(dataset_name):
     img_transform_sketch = T.Compose(img_transform_sketch)
 
     dataset = DataSet(img_transform_gt, img_transform_sketch, dataset_name)
-    data_loader = data.DataLoader(dataset=dataset,
-                                  batch_size=1,
-                                  num_workers=1)
+    data_loader = data.DataLoader(dataset=dataset, batch_size=1, num_workers=1)
     return data_loader
 
 
 def image_save(gen, fid, sample_dir):
-    sample_path = sample_dir + '/' + fid + '.png'
+    sample_path = sample_dir + "/" + fid + ".png"
     save_image(denorm(gen.data.cpu()), sample_path, nrow=1, padding=0)
 
 
 def load_model(dataset_name, epoch):
-    G_path = './' + dataset_name + '/models/{}-G.pth'.format(epoch)
+    G_path = "./" + dataset_name + "/models/{}-G.pth".format(epoch)
     G_checkpoint = torch.load(G_path)
-    G.load_state_dict(G_checkpoint['model'])
+    G.load_state_dict(G_checkpoint["model"])
     # G.load_state_dict(torch.load(G_path, map_location=lambda storage, loc: storage))
     G.to(device)
     G.eval()
 
-if __name__ == '__main__':
-    dataset_name = 'anime'
+
+if __name__ == "__main__":
+    dataset_name = "anime"
     test_loader = get_loader(dataset_name)
     load_model(dataset_name, 20)
 
@@ -92,7 +90,7 @@ if __name__ == '__main__':
     skt = skt.to(device)
 
     result, attention_map = G.att(ref, skt)
-    image_save(result, 'result', './' + dataset_name + '/exp')
+    image_save(result, "result", "./" + dataset_name + "/exp")
 
     # u1, s1, v1 = torch.linalg.svd(before.data.cpu().squeeze())
     # u2, s2, v2 = torch.linalg.svd(after.data.cpu().squeeze())
@@ -121,4 +119,3 @@ if __name__ == '__main__':
     # plt.xlabel('k', fontsize=15, weight='bold')
     # plt.ylabel('ratio', fontsize=15, weight='bold')
     # plt.savefig("./"+dataset_name+"/exp/line.png")
-
